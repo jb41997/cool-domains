@@ -1,12 +1,28 @@
 const main = async () => {
-    // v1 Domain contract factory
-    const v1ContractFactory = await hre.ethers.getContractFactory('Domains_v1');
+    // SVG Library deploy
+    const genSvgLibFactory = await hre.ethers.getContractFactory('GenSVG');
+    const genSvgLibContract = await genSvgLibFactory.deploy()
+    await genSvgLibContract.deployed()
+    console.log("GenSVG library deployed to: ", genSvgLibContract.address);
+
+    // original Domain contract factory
+    const v1ContractFactory = await hre.ethers.getContractFactory('Domains_v1',{
+        libraries: {
+        GenSVG: genSvgLibContract.address,
+        }
+    });
+
     // deploy proxy instead of standard deploy
-    const v1Contract = await hre.upgrades.deployProxy(v1ContractFactory, ["pibble"], {kind: 'uups'});
+     const v1Contract = await hre.upgrades.deployProxy(v1ContractFactory,
+     ["pibble"], 
+     {
+       unsafeAllow: ["external-library-linking"],
+       kind: 'uups'
+      });
     await v1Contract.deployed();
  
     console.log("Contract deployed to: ", v1Contract.address);
-    console.log("Contract Version: ", await v1Contract.version())
+    console.log("Contract Version: ", await v1Contract.version());
   
     let txn = await v1Contract.register("gusgus",  {value: hre.ethers.utils.parseEther('0.1')});
     await txn.wait();
